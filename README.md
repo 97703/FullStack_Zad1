@@ -365,7 +365,7 @@ potwierdziło, że wszystkie cztery węzły są aktywne i mają status <code>Rea
 
 # 4. Utworzenie usług sieciowych
 
-<p align="justify">W celu zapewnienia komunikacji pomiędzy komponentami aplikacji oraz umożliwienia dostępu do nich z zewnątrz lub wewnątrz klastra, utworzono trzy obiekty typu <code>Service</code>code>. Każdy z nich odpowiadał za ekspozycję konkretnego komponentu: frontend, backend oraz <code>MySQL</code>code>. Zastosowano dwa typy usług – <code>NodePort</code>code> dla frontendu, aby umożliwić dostęp spoza klastra, oraz <code>ClusterIP</code>code> dla backendu i bazy danych, ponieważ te komponenty miały komunikować się wyłącznie wewnętrznie.</p>
+<p align="justify">W celu zapewnienia komunikacji pomiędzy komponentami aplikacji oraz umożliwienia dostępu do nich z zewnątrz lub wewnątrz klastra, utworzono trzy obiekty typu <code>Service</code>. Każdy z nich odpowiadał za ekspozycję konkretnego komponentu: frontend, backend oraz <code>MySQL</code>. Zastosowano dwa typy usług – <code>NodePort</code> dla frontendu, aby umożliwić dostęp spoza klastra, oraz <code>ClusterIP</code> dla backendu i bazy danych, ponieważ te komponenty miały komunikować się wyłącznie wewnętrznie.</p>
 
 ## 4.1. Usługa dla Backendu (plik backend-svc.yaml)
 
