@@ -708,7 +708,7 @@ Takie podejście zapewnia minimalne, ale wystarczające reguły komunikacji, zgo
 <p align="center">
   <img src="https://raw.githubusercontent.com/97703/FullStack_Zad1/main/rysunki/rys27.png" style="width: 70%; height: 70%" /></p>
 <p align="center">
-  <i>Rys. 27. Utworzenie obiektów HorizontalPodAutoscaler</i>
+  <i>Rys. 27. Utworzenie obiektu typu HorizontalPodAutoscaler</i>
 </p>
 
 <p align="justify">Wdrożenie HPA pozwala na dynamiczne dostosowanie liczby replik frontendu do aktualnego obciążenia.
@@ -827,7 +827,7 @@ aby uzyskać listę wszystkich obiektów w klastrze wraz z przypisanymi adresami
 
 pokazuje w czasie rzeczywistym bieżącą średnią wartość CPU i RAM (np. cpu: 3%/70%) oraz aktualną liczbę replik, więc można bezpośrednio obserwować, czy HPA reaguje na ruch zgodnie z konfiguracją (minReplicas=3, maxReplicas=10, target 70%).
 
-<p align="justify">Użycie --url w minikube jest decyzją praktyczną wynikającą z ograniczeń <code>WSL</code> — eliminuje zmienne środowiskowe, które mogłyby zafałszować wynik (np. brak dostępu do NodePort z hosta). <code>wrk</code> generuje realistyczny ruch <code>HTTP</code>, który w przypadku <code>nginx</code> obciąża głównie CPU; to spójne z konfiguracją HPA, gdzie targetem jest średnie wykorzystanie CPU na poziomie 70%. Dodanie metryki pamięci w HPA jest poprawne i kompletną praktyką, ale test z wrk nie jest pamięciochłonny — jeśli celem byłaby weryfikacja również progu dla RAM, test należałoby rozszerzyć o scenariusze generujące większe zapotrzebowanie pamięci (np. serwowanie dużych plików lub testy aplikacji z intensywną alokacją). W tym scenariuszu skupiamy się na dowiedzeniu, że autoskalowanie frontendu zgodnie z progiem CPU działa, a pod obciążeniem liczba replik rośnie z 3 w kierunku limitu, utrzymując dostępność.</p>
+<p align="justify">Użycie --url w minikube jest decyzją praktyczną wynikającą z ograniczeń <code>WSL</code> — eliminuje zmienne środowiskowe, które mogłyby zafałszować wynik (np. brak dostępu do NodePort z hosta). <code>wrk</code> generuje realistyczny ruch <code>HTTP</code>, który w przypadku <code>nginx</code> obciąża głównie CPU; to spójne z konfiguracją HPA, gdzie targetem jest średnie wykorzystanie CPU na poziomie 70%. Dodanie metryki pamięci w HPA jest poprawne i kompletną praktyką, ale test z wrk nie jest pamięciochłonny — jeśli celem byłaby weryfikacja również progu dla RAM, test należałoby rozszerzyć o scenariusze generujące większe zapotrzebowanie pamięci (np. serwowanie dużych plików lub testy aplikacji z intensywną alokacją). W tym scenariuszu skupiamy się na dowiedzeniu, że autoskalowanie frontendu zgodnie z progiem CPU i RAMu działa, a pod obciążeniem liczba replik rośnie z 3 w kierunku limitu, stale utrzymując dostępność.</p>
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/97703/FullStack_Zad1/main/rysunki/rys32.png" style="width: 70%; height: 70%" /></p>
@@ -835,11 +835,11 @@ pokazuje w czasie rzeczywistym bieżącą średnią wartość CPU i RAM (np. cpu
   <i>Rys. 32. Obciążenie obiektu Deploymentu dla Frontendu w czasie</i>
 </p>
 
-<p align="justify">Ostatecznym dowodem poprawności konfiguracji jest korelacja trzech obserwacji: po pierwsze, stabilny dostęp do frontendu przez adres z <code>--url</code> przez cały czas trwania testu, co udowadnia poprawną ekspozycję usługi i brak przerw podczas skalowania. Po drugie, wzrost liczby replik obserwowany w</p>
+<p align="justify">Ostatecznym dowodem poprawności konfiguracji jest korelacja trzech obserwacji: po pierwsze, stabilny dostęp do frontendu przez adres z <code>--url</code> przez cały czas trwania testu, co udowadnia poprawną ekspozycję usługi i brak przerw podczas skalowania. Po drugie, wzrost i późniejszy spadek liczby replik obserwowany przez polecenie:</p>
   
     kubectl get hpa -w
     
-<p align="justify">oraz w stanie Deploymentu, co potwierdza reakcję <code>HPA</code> na realny wzrost wykorzystania zasobów. Po trzecie, utrzymanie zasad komunikacji sieciowej niezależnie od skali (frontend nadal ma łączność z backendem, brak bezpośredniego dostępu do MySQL), co pokazują wcześniejsze testy TCP — skalowanie nie „omija” NetworkPolicy ani nie zmienia selektorów Service. Razem daje to wiarygodny, end-to-end dowód, że konfiguracja jest poprawna: ruch jest obsługiwany, autoskalowanie reaguje, a bezpieczeństwo i separacja warstw są zachowane również pod obciążeniem.</p>
+<p align="justify">oraz w stanie Deploymentu, co potwierdza reakcję <code>HPA</code> na realny wzrost i spadek wykorzystania zasobów. Po trzecie, utrzymanie zasad komunikacji sieciowej niezależnie od skali (frontend nadal ma łączność z backendem, brak bezpośredniego dostępu do MySQL), co pokazują wcześniejsze testy TCP — skalowanie nie pomija NetworkPolicy ani nie zmienia selektorów Service. Konfiguracja jest poprawna: ruch jest obsługiwany, autoskalowanie reaguje, a bezpieczeństwo i separacja warstw są zachowane również pod obciążeniem.</p>
 
 # 9. Część nieobowiązkowa - aktualizacja aplikacji Frontend
 
@@ -858,12 +858,11 @@ pokazuje w czasie rzeczywistym bieżącą średnią wartość CPU i RAM (np. cpu
         type: RollingUpdate
         rollingUpdate:
           maxUnavailable: 1
-          maxSurge: 1
-    Uzasadnienie:
+          maxSurge: 0
 
 <p align="justify">a) Zawsze aktywne 2 Pody: Przy minimalnej liczbie replik ustawionej na 3 (zgodnie z <code>HPA</code>), parametr maxUnavailable: 1 gwarantuje, że w trakcie aktualizacji nigdy nie zostanie wyłączonych więcej niż jeden Pod naraz. Oznacza to, że co najmniej 2 Pody pozostaną aktywne i będą obsługiwać ruch.</p>
 
-<p align="justify">b) Nieprzekroczenie limitów zasobów: Parametr maxSurge: 1 pozwala na utworzenie maksymalnie jednego dodatkowego Poda ponad zdefiniowaną liczbę replik. Dzięki temu w trakcie aktualizacji liczba Podów nie wzrośnie gwałtownie i nie przekroczy limitów CPU, RAM ani maksymalnej liczby replik określonych w ResourceQuota dla namespace frontend.</p>
+<p align="justify">b) Nieprzekroczenie limitów zasobów: Parametr maxSurge: 0 nie pozwala na utworzenie żadnego dodatkowego Poda ponad zdefiniowaną liczbę replik. Dzięki temu w trakcie aktualizacji liczba Podów nie wzrośnie gwałtownie i nie przekroczy limitów CPU, RAM ani maksymalnej liczby replik określonych w ResourceQuota dla namespace frontend.</p>
 
 <p align="justify">c) Korelacja z ustawieniami <code>HPA</code>: dla frontendu zostało skonfigurowane z zakresem od 3 do 10 replik. Strategia rollingUpdate działa w tym zakresie bez konieczności zmian – autoskaler nadal może zwiększać liczbę replik w odpowiedzi na obciążenie. Jeśli jednak w namespace frontend obowiązują bardzo restrykcyjne limity (np. maksymalnie 4 Pody), należałoby dostosować <code>maxReplicas</code> w HPA do tego limitu, aby uniknąć konfliktu między autoskalerem a <code>ResourceQuota</code>. W przeciwnym razie HPA mógłby próbować utworzyć więcej Podów niż dopuszczają limity, co skutkowałoby błędami przy skalowaniu.</p>
 
